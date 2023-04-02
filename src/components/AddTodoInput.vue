@@ -1,8 +1,37 @@
-<script setup></script>
+<script setup>
+import Spinner from './Spinner.vue';
+import { ref } from 'vue';
+import { useMutation } from '@vue/apollo-composable';
+import { ADD_TODO } from '../graphql/mutations.js';
+import { TODOS } from '../graphql/queries.js';
+
+const title = ref('');
+
+const { mutate: addTodo, onError, onDone, loading } = useMutation(ADD_TODO, {
+  refetchQueries: [{ query: TODOS }]
+});
+
+const onAdd = () => {
+  addTodo({
+    input: {
+      title: title.value
+    }
+  })
+};
+
+onDone(() => {
+  title.value = ''
+});
+
+onError(() => {
+  console.error('An error occurred while adding a todo')
+});
+</script>
 
 <template>
   <div class="px-5 w-full bg-gray-100 rounded-lg outline-none text-gray-900 flex items-center justify-between">
     <input class="rounded-lg py-3.5 flex-1 bg-gray-100 outline-none pr-2.5" type="text"
-      placeholder="What needs to be done?" />
+      placeholder="What needs to be done?" :readonly="loading" v-model="title" @keypress.enter="onAdd" />
+    <Spinner v-if="loading" class="text-blue-900 w-8" />
   </div>
 </template>

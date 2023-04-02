@@ -1,24 +1,65 @@
 <script setup>
+
+import { useMutation } from '@vue/apollo-composable';
+import { TODOS } from '../graphql/queries.js';
+import { UPDATE_TODO, DELETE_TODO } from '../graphql/mutations.js';
+
 import { ref } from 'vue';
 const completed = ref(false);
+
+const props = defineProps({ todo: Object });
+
+const { mutate: updateTodo, onError: onUpdateError } = useMutation(
+  UPDATE_TODO,
+  {
+    refetchQueries: [{ query: TODOS }]
+  }
+);
+
 const toggle = () => {
-  completed.value = !completed.value
+  updateTodo({
+    input: {
+      todoId: props.todo.id,
+      completed: !props.todo.completed
+    }
+  })
 };
+
+onUpdateError(() => {
+  console.error('An error occurred while updating todos')
+});
+
+const { mutate: deleteTodo, onError: onDeleteError } = useMutation(
+  DELETE_TODO,
+  {
+    refetchQueries: [{ query: TODOS }]
+  }
+);
+
+const onDeleteClick = async () => {
+  deleteTodo({
+    todoId: props.todo.id
+  })
+};
+
+onDeleteError(() => {
+  console.error('An error occurred while deleting todo')
+});
 </script>
 
 <template>
   <div class="group flex items-center justify-between bg-gray-200 rounded-lg px-5 py-3.5 text-gray-900">
     <div class="flex items-center">
       <button :class="[
-        completed ? 'bg-blue-500 border-blue-500' : 'border-gray-500',
+        todo.completed ? 'bg-blue-500 border-blue-500' : 'border-gray-500',
         'hover:border-blue-500 border-2 w-5 h-5 rounded-full flex items-center justify-center text-white cursor-pointer'
       ]" @click="toggle">
-        <svg v-if="completed" style="width: 15px; height: 15px" viewBox="0 0 24 24">
+        <svg v-if="todo.completed" style="width: 15px; height: 15px" viewBox="0 0 24 24">
           <path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
         </svg>
       </button>
-      <span :class="[completed && 'line-through text-gray-500', 'ml-2.5']">
-        Todo Title
+      <span :class="[todo.completed && 'line-through text-gray-500', 'ml-2.5']">
+        {{ todo.title }}
       </span>
     </div>
 
@@ -30,3 +71,4 @@ const toggle = () => {
     </button>
   </div>
 </template>
+
