@@ -14,15 +14,6 @@ export const LOGIN_USER = gql`
     }
   }
 `
-export const ADD_TODO = gql`
-  mutation addTodo($input: AddTodoInput!) {
-    addTodo(input: $input) {
-      id
-      title
-      completed
-    }
-  }
-`
 export const UPDATE_TODO = gql`
   mutation updateTodo($input: UpdateTodoInput) {
     updateTodo(input: $input) {
@@ -34,6 +25,15 @@ export const DELETE_TODO = gql`
   mutation deleteTodo($todoId: ID) {
     deleteTodo(todoId: $todoId) {
       status
+    }
+  }
+`
+export const ADD_TODO = gql`
+  mutation addTodo($input: AddTodoInput!) {
+    addTodo(input: $input) {
+      id
+      title
+      completed
     }
   }
 `

@@ -11,7 +11,7 @@ useRouter().beforeEach(async (to, from, next) => {
       return next()
     }
     if (user && to.meta?.requiresGuest) {
-      return next({ name: 'home' })
+      return next({ name: 'Home' })
     }
     if (!user && to.meta?.requiresAuth) {
       return next({ name: 'Login' })
