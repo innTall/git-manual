@@ -1,13 +1,30 @@
 <script setup>
-import Spinner from '../components/Spinner.vue';
-import AddTodoInput from '../components/AddTodoInput.vue';
-import TodoItem from '../components/TodoItem.vue';
-import { useAuth } from '../store/auth.js';
-import { useQuery } from '@vue/apollo-composable';
-import { TODOS } from '../graphql/queries.js';
-
-const { currentUser, logout } = useAuth();
-const { loading, result } = useQuery(TODOS);
+import Spinner from '../components/Spinner.vue'
+import AddTodoInput from '../components/AddTodoInput.vue'
+import { computed, ref, watch } from 'vue'
+import TodoItem from '../components/TodoItem.vue'
+import { useAuth } from '../store/auth'
+import { useQuery } from '@vue/apollo-composable'
+import { TODOS } from '../graphql/queries'
+import { NetworkStatus } from '@apollo/client/core'
+const { currentUser, logout } = useAuth()
+const localTodos = ref([])
+const { loading, result, refetch, networkStatus } = useQuery(TODOS, null, {
+  notifyOnNetworkStatusChange: true
+})
+watch(result, () => {
+  localTodos.value = result.value.todos
+})
+const isRefetching = computed(
+  () => networkStatus.value === NetworkStatus.refetch
+)
+const onAdded = (newTodo) => {
+  localTodos.value = [...localTodos.value, newTodo]
+  refetch()
+}
+const onDelete = (todoId) => {
+  localTodos.value = localTodos.value.filter((todo) => todo.id !== todoId)
+}
 </script>
 
 <template>
@@ -22,14 +39,15 @@ const { loading, result } = useQuery(TODOS);
       </button>
     </div>
     <div class="mt-2.5">
-      <AddTodoInput />
+      <AddTodoInput @added="onAdded" />
       <div class="mt-3.5">
-        <div v-if="loading" class="mt-10 flex items-center justify-center text-xl font-medium">
+        <div v-if="loading && !isRefetching" class="mt-10 flex items-center justify-center text-xl font-medium">
           <Spinner class="w-5 mr-2.5" />
           Loading Todos
         </div>
-        <div v-else-if="result.todos.length > 0" class="space-y-2.5">
-          <TodoItem v-for="todo in result.todos" :key="todo.id" :todo="todo" />
+        <div v-else-if="localTodos.length > 0" class="space-y-2.5">
+          <TodoItem v-for="todo in localTodos" :key="todo.id" :todo="todo" @delete="onDelete(todo.id)"
+            @deleted="refetch" />
         </div>
         <div v-else class="mt-10 text-center text-blue-50 text-opacity-40">
           Your Todo List is Empty

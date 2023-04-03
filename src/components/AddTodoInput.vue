@@ -1,31 +1,30 @@
 <script setup>
-import Spinner from './Spinner.vue';
-import { ref } from 'vue';
-import { useMutation } from '@vue/apollo-composable';
-import { ADD_TODO } from '../graphql/mutations.js';
-import { TODOS } from '../graphql/queries.js';
-
-const title = ref('');
-
-const { mutate: addTodo, onError, onDone, loading } = useMutation(ADD_TODO, {
-  refetchQueries: [{ query: TODOS }]
-});
-
+import Spinner from './Spinner.vue'
+import { ref } from 'vue'
+import { useMutation } from '@vue/apollo-composable'
+import { ADD_TODO } from '../graphql/mutations'
+const emit = defineEmits(['added'])
+const title = ref('')
+const {
+  mutate: addTodo,
+  onError: onAddError,
+  onDone: onAddDone,
+  loading
+} = useMutation(ADD_TODO)
 const onAdd = () => {
   addTodo({
     input: {
       title: title.value
     }
   })
-};
-
-onDone(() => {
+}
+onAddDone((result) => {
   title.value = ''
-});
-
-onError(() => {
+  emit('added', result.data.addTodo)
+})
+onAddError(() => {
   console.error('An error occurred while adding a todo')
-});
+})
 </script>
 
 <template>

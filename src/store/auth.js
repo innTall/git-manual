@@ -1,22 +1,32 @@
-import { ref } from 'vue';
-import { defineStore } from 'pinia';
-import { useLazyQuery, useApolloClient } from '@vue/apollo-composable';
-import { CURRENT_USER } from '../graphql/queries.js';
-import { useRouter } from 'vue-router';
+import { ref } from 'vue'
+import { defineStore } from 'pinia'
+import {
+  useLazyQuery,
+  useMutation,
+  useApolloClient
+} from '@vue/apollo-composable'
+import { CURRENT_USER } from '../graphql/queries'
+import { LOGIN_USER } from '../graphql/mutations'
+import { useRouter } from 'vue-router'
 
 export const useAuth = defineStore('auth', () => {
   const router = useRouter()
   const { client } = useApolloClient()
   const currentUser = ref(null)
-
-  const { onResult, load, networkStatus, refetch, onError } = useLazyQuery(
-    CURRENT_USER,
-    null,
-    {
-      fetchPolicy: 'no-cache'
-    }
-  );
-
+  const {
+    onResult: onCurrentUserResult,
+    load: loadCurrentUser,
+    networkStatus: currentUserNetworkStatus,
+    refetch: refetchCurrentUser,
+    onError: onCurrentUserError
+  } = useLazyQuery(CURRENT_USER, null, {
+    fetchPolicy: 'no-cache'
+  })
+  const {
+    mutate: loginUser,
+    onDone: onLoginDone,
+    onError: onLoginError
+  } = useMutation(LOGIN_USER)
   const getUser = () => {
     return new Promise((resolve) => {
       if (!localStorage.getItem('todoapp-token')) {
@@ -26,26 +36,45 @@ export const useAuth = defineStore('auth', () => {
       if (currentUser.value !== null) {
         return resolve(currentUser)
       }
-      if (networkStatus.value) {
-        refetch()
+      if (currentUserNetworkStatus.value) {
+        refetchCurrentUser()
       } else {
-        load()
+        loadCurrentUser()
       }
-      onResult((result) => {
+      onCurrentUserResult((result) => {
         if (result.data?.currentUser) {
           currentUser.value = result.data.currentUser
           resolve(currentUser)
         }
       })
-      onError(() => {
+      onCurrentUserError(() => {
         resolve(null)
       })
     })
-  };
+  }
+  const login = ({ username, password }) => {
+    return new Promise((resolve, reject) => {
+      loginUser({
+        username,
+        password
+      })
+      onLoginDone((result) => {
+        const token = result.data?.loginUser?.token
+        if (!token) {
+          reject('Error login')
+        }
+        localStorage.setItem('todoapp-token', token)
+        resolve(true)
+      })
+      onLoginError(() => {
+        reject('Error login')
+      })
+    })
+  }
   const logout = () => {
     localStorage.removeItem('todoapp-token')
     client.cache.reset()
     router.push({ name: 'Login' })
   }
-  return { currentUser, getUser, logout }
-});
+  return { currentUser, getUser, login, logout }
+})
